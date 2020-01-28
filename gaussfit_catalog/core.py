@@ -215,7 +215,8 @@ def gaussfit_catalog(fitsfile, region_list, radius=1.0*u.arcsec,
                                                      sz/2+max_offset_in_beams*bmmaj_px/STDDEV_TO_FWHM),
                                            'y_mean':(sz/2-max_offset_in_beams*bmmaj_px/STDDEV_TO_FWHM,
                                                      sz/2+max_offset_in_beams*bmmaj_px/STDDEV_TO_FWHM),
-                                           'amplitude':(ampguess*0.9, ampguess*1.1)
+                                           'amplitude':(ampguess*0.9, ampguess*1.1),
+                                           'theta': (0, 2*np.pi),
                                           }
                                   )
 
@@ -263,6 +264,8 @@ def gaussfit_catalog(fitsfile, region_list, radius=1.0*u.arcsec,
             major,minor = minor,major
             majind,minind = minind,majind
             pa += 90*u.deg
+            if pa > 360*u.deg:
+                pa -= 360*u.deg
 
         fitted_gaussian_as_beam = Beam(major=major, minor=minor, pa=pa)
         try:
@@ -273,6 +276,11 @@ def gaussfit_catalog(fitsfile, region_list, radius=1.0*u.arcsec,
         except ValueError:
             print("Could not deconvolve {0} from {1}".format(beam.__repr__(), fitted_gaussian_as_beam.__repr__()))
             deconv_major, deconv_minor, deconv_pa = np.nan, np.nan, np.nan
+
+        if pa < -360*u.deg or pa > 360*u.deg:
+            raise ValueError("PA is set incorrectly.")
+        if deconv_pa < -360*u.deg or deconv_pa > 360*u.deg:
+            raise ValueError("Deconvolved PA is set incorrectly.")
 
         fit_data[sourcename] = {'amplitude': result.amplitude,
                                 'center_x': float(clon)*u.deg,
